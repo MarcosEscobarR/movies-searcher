@@ -2,19 +2,20 @@ import { Result } from "../../../libs/result";
 import { mongoClient } from "../../utils/mongoClient";
 import { paginate } from "../../utils/paginate";
 import { elasticsearchClient } from "../../utils/elasticsearch";
+import { Movie } from "../models";
 
 export async function getMoviesService(
   page: number,
   noOfRecordsPerPage: number
 ) {
   try {
-    const mongoCollection = mongoClient.db("movies").collection("movies");
+    const mongoCollection = mongoClient().db("movies").collection("movies");
     const documents = mongoCollection
-      .find() // search on all data
-      .sort({ _id: -1 }) // reverse the data to get latest record first
-      .skip(page * noOfRecordsPerPage) // skip the records base on page number
-      .limit(noOfRecordsPerPage) // no of record par page
-      .toArray(); //
+      .find()
+      .sort({ _id: -1 })
+      .skip(page * noOfRecordsPerPage)
+      .limit(noOfRecordsPerPage)
+      .toArray();
 
     const totalRecords = mongoCollection.countDocuments();
     return Result.ok(
@@ -26,6 +27,7 @@ export async function getMoviesService(
       })
     );
   } catch (e) {
+    console.log({ e });
     return Result.internalServerError({
       message: "Error while fetching data",
     });
@@ -91,20 +93,22 @@ export async function searchMoviesService(
       sort: [{ score: { order: "desc" } }],
     });
 
-    const data = searchResult.hits.hits.map((hit) => ({
-      title: hit._source.title,
-      image: hit._source.image,
-      score: hit._source.score,
-      year: hit._source.year,
-      rating: hit._source.rating,
-      color: hit._source.color,
+    const hits: Movie[] = searchResult.hits.hits;
+
+    const data = hits.map((hit) => ({
+      title: hit.title,
+      image: hit.image,
+      score: hit.score,
+      year: hit.year,
+      rating: hit.rating,
+      color: hit.color,
     }));
 
     // const totalRows = searchResult.hits.total.value;
-    console.log(searchResult.hits);
     const totalRows = searchResult.hits.total.value;
+    console.log({ totalRows });
     return Result.ok(
-      paginate({ data, page: 1, pageSize: 10, total: totalRows })
+      paginate({ data, page: pageIndex, pageSize, total: totalRows })
     );
   } catch (error) {
     console.log({ error });
