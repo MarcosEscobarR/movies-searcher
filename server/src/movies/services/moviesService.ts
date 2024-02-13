@@ -108,7 +108,12 @@ export async function searchMoviesService(
     const totalRows = (searchResult.hits.total as SearchTotalHits).value;
     console.log({ totalRows });
     return Result.ok(
-      paginate({ data, page: pageIndex, pageSize, total: totalRows })
+      paginate({
+        data: searchResult.hits.hits,
+        page: pageIndex,
+        pageSize,
+        total: totalRows,
+      })
     );
   } catch (error) {
     console.log({ error });
